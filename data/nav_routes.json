@@ -1,0 +1,70 @@
+{
+  "routes": [
+    {
+      "id": "ROUTE001",
+      "from": "望京",
+      "to": "中关村软件园",
+      "distance_km": 18.5,
+      "duration_min": 35,
+      "toll": false,
+      "traffic_level": "smooth",
+      "steps": [
+        {"instruction": "沿望京西路向北行驶500米", "distance": 500},
+        {"instruction": "右转进入京承高速", "distance": 8000},
+        {"instruction": "从北五环出口驶出", "distance": 3000},
+        {"instruction": "沿中关村大街向西行驶2公里", "distance": 2000},
+        {"instruction": "右转进入软件园路，到达目的地", "distance": 1000}
+      ]
+    },
+    {
+      "id": "ROUTE002",
+      "from": "望京",
+      "to": "中关村软件园",
+      "distance_km": 22.0,
+      "duration_min": 40,
+      "toll": false,
+      "traffic_level": "smooth",
+      "avoid_toll": true,
+      "steps": [
+        {"instruction": "沿望京西路向南行驶800米", "distance": 800},
+        {"instruction": "左转进入阜通东大街", "distance": 3000},
+        {"instruction": "沿北四环向西行驶8公里", "distance": 8000},
+        {"instruction": "从中关村出口驶出", "distance": 2000},
+        {"instruction": "沿中关村大街向北行驶2公里", "distance": 2000},
+        {"instruction": "右转进入软件园路，到达目的地", "distance": 1200}
+      ]
+    },
+    {
+      "id": "ROUTE003",
+      "from": "望京",
+      "to": "三里屯",
+      "distance_km": 8.5,
+      "duration_min": 22,
+      "toll": false,
+      "traffic_level": "slow",
+      "steps": [
+        {"instruction": "沿望京西路向南行驶1公里", "distance": 1000},
+        {"instruction": "左转进入京密路", "distance": 2000},
+        {"instruction": "沿东三环向南行驶3公里", "distance": 3000},
+        {"instruction": "从工体北路出口驶出", "distance": 500},
+        {"instruction": "沿工体北路向西行驶500米到达三里屯", "distance": 500}
+      ]
+    },
+    {
+      "id": "ROUTE004",
+      "from": "望京",
+      "to": "西城区广安门外",
+      "distance_km": 16.0,
+      "duration_min": 38,
+      "toll": false,
+      "traffic_level": "congested",
+      "steps": [
+        {"instruction": "沿望京西路向南行驶1公里", "distance": 1000},
+        {"instruction": "进入北三环向西行驶5公里", "distance": 5000},
+        {"instruction": "沿西三环向南行驶3公里", "distance": 3000},
+        {"instruction": "从广安门出口驶出", "distance": 1000},
+        {"instruction": "沿广安门外大街向西行驶1公里到达目的地", "distance": 1000}
+      ]
+    }
+  ]
+}

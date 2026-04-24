@@ -1,0 +1,42 @@
+{
+  "orders": [
+    {
+      "order_id": "CF1776911835",
+      "shop_name": "瑞幸咖啡",
+      "coffee_name": "拿铁",
+      "size": "大杯",
+      "ice": "少冰",
+      "sugar": "半糖",
+      "toppings": [
+        "奶盖"
+      ],
+      "create_time": "2026-04-23 10:37:15",
+      "status": "confirmed",
+      "price": 21
+    },
+    {
+      "order_id": "CF1776913227",
+      "shop_name": "瑞幸咖啡",
+      "coffee_name": "卡布奇诺",
+      "size": "大杯",
+      "ice": "少冰",
+      "sugar": "半糖",
+      "toppings": [],
+      "create_time": "2026-04-23 11:00:27",
+      "status": "confirmed",
+      "price": 0
+    },
+    {
+      "order_id": "CF1776996604",
+      "shop_name": "瑞幸咖啡",
+      "coffee_name": "摩卡",
+      "size": "大杯",
+      "ice": "少冰",
+      "sugar": "半糖",
+      "toppings": [],
+      "create_time": "2026-04-24 10:10:04",
+      "status": "confirmed",
+      "price": 0
+    }
+  ]
+}

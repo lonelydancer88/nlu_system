@@ -1,0 +1,29 @@
+{
+  "home": {
+    "name": "家",
+    "address": "朝阳区望京西园四区",
+    "location": {"lat": 39.985, "lng": 116.470}
+  },
+  "company": {
+    "name": "公司",
+    "address": "海淀区中关村软件园二期",
+    "location": {"lat": 40.052, "lng": 116.302}
+  },
+  "favorites": [
+    {
+      "name": "健身房",
+      "address": "朝阳区望京健身中心",
+      "location": {"lat": 39.988, "lng": 116.475}
+    },
+    {
+      "name": "父母家",
+      "address": "西城区广安门外大街168号",
+      "location": {"lat": 39.893, "lng": 116.342}
+    },
+    {
+      "name": "高尔夫球场",
+      "address": "朝阳区望京高尔夫俱乐部",
+      "location": {"lat": 40.020, "lng": 116.500}
+    }
+  ]
+}

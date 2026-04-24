@@ -1,0 +1,8 @@
+{
+  "fuel_level": 65,
+  "fuel_range_km": 380,
+  "battery_level": null,
+  "battery_range_km": null,
+  "vehicle_type": "fuel",
+  "last_updated": "2026-04-23 10:00:00"
+}

@@ -1,0 +1,156 @@
+{
+  "pois": [
+    {
+      "id": "POI001",
+      "name": "中石化望京加油站",
+      "type": "gas_station",
+      "address": "朝阳区望京西路8号",
+      "location": {"lat": 39.987, "lng": 116.474},
+      "rating": 4.2,
+      "price_level": 2
+    },
+    {
+      "id": "POI002",
+      "name": "中石油北五环加油站",
+      "type": "gas_station",
+      "address": "海淀区北五环中路12号",
+      "location": {"lat": 40.010, "lng": 116.380},
+      "rating": 4.0,
+      "price_level": 2
+    },
+    {
+      "id": "POI003",
+      "name": "中石化中关村加油站",
+      "type": "gas_station",
+      "address": "海淀区中关村大街55号",
+      "location": {"lat": 40.048, "lng": 116.320},
+      "rating": 4.3,
+      "price_level": 2
+    },
+    {
+      "id": "POI004",
+      "name": "海底捞望京店",
+      "type": "restaurant",
+      "address": "朝阳区望京SOHO T1",
+      "location": {"lat": 39.991, "lng": 116.478},
+      "rating": 4.5
+    },
+    {
+      "id": "POI005",
+      "name": "全聚德中关村店",
+      "type": "restaurant",
+      "address": "海淀区中关村广场步行街",
+      "location": {"lat": 40.050, "lng": 116.315},
+      "rating": 4.3
+    },
+    {
+      "id": "POI006",
+      "name": "西贝莜面村三里屯店",
+      "type": "restaurant",
+      "address": "朝阳区三里屯太古里南区",
+      "location": {"lat": 39.935, "lng": 116.454},
+      "rating": 4.4
+    },
+    {
+      "id": "POI007",
+      "name": "望京SOHO停车场",
+      "type": "parking",
+      "address": "朝阳区望京SOHO地下停车场",
+      "location": {"lat": 39.992, "lng": 116.477},
+      "rating": 4.1,
+      "price_per_hour": 8
+    },
+    {
+      "id": "POI008",
+      "name": "中关村广场停车场",
+      "type": "parking",
+      "address": "海淀区中关村广场B2层",
+      "location": {"lat": 40.051, "lng": 116.313},
+      "rating": 3.9,
+      "price_per_hour": 10
+    },
+    {
+      "id": "POI009",
+      "name": "三里屯太古里停车场",
+      "type": "parking",
+      "address": "朝阳区三里屯太古里地下停车场",
+      "location": {"lat": 39.936, "lng": 116.453},
+      "rating": 4.0,
+      "price_per_hour": 15
+    },
+    {
+      "id": "POI010",
+      "name": "特来电望京充电站",
+      "type": "charging_station",
+      "address": "朝阳区望京西路融科创意中心",
+      "location": {"lat": 39.988, "lng": 116.472},
+      "rating": 4.1,
+      "charger_count": 8
+    },
+    {
+      "id": "POI011",
+      "name": "星星充电中关村站",
+      "type": "charging_station",
+      "address": "海淀区中关村软件园二期",
+      "location": {"lat": 40.053, "lng": 116.300},
+      "rating": 4.0,
+      "charger_count": 12
+    },
+    {
+      "id": "POI012",
+      "name": "北京大学第三医院",
+      "type": "hospital",
+      "address": "海淀区花园北路49号",
+      "location": {"lat": 40.038, "lng": 116.355},
+      "rating": 4.6
+    },
+    {
+      "id": "POI013",
+      "name": "朝阳医院",
+      "type": "hospital",
+      "address": "朝阳区工人体育场南路8号",
+      "location": {"lat": 39.928, "lng": 116.450},
+      "rating": 4.5
+    },
+    {
+      "id": "POI014",
+      "name": "招商银行望京支行",
+      "type": "bank",
+      "address": "朝阳区望京西路10号",
+      "location": {"lat": 39.986, "lng": 116.473},
+      "rating": 4.0
+    },
+    {
+      "id": "POI015",
+      "name": "物美超市望京店",
+      "type": "supermarket",
+      "address": "朝阳区望京西园四区",
+      "location": {"lat": 39.984, "lng": 116.469},
+      "rating": 3.8
+    },
+    {
+      "id": "POI016",
+      "name": "万达广场(CBD店)",
+      "type": "shopping",
+      "address": "朝阳区建国路93号",
+      "location": {"lat": 39.908, "lng": 116.470},
+      "rating": 4.4
+    },
+    {
+      "id": "POI017",
+      "name": "万达广场(通州店)",
+      "type": "shopping",
+      "address": "通州区新华西街58号",
+      "location": {"lat": 39.907, "lng": 116.660},
+      "rating": 4.2
+    },
+    {
+      "id": "POI018",
+      "name": "万达广场(大兴店)",
+      "type": "shopping",
+      "address": "大兴区黄村东大街38号",
+      "location": {"lat": 39.727, "lng": 116.340},
+      "rating": 4.1
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "default_shop": "瑞幸咖啡",
+  "default_size": "大杯",
+  "default_ice": "少冰",
+  "default_sugar": "半糖",
+  "default_toppings": [],
+  "favorite_coffee": "摩卡",
+  "last_order": {
+    "order_id": "CF1776996604",
+    "shop_name": "瑞幸咖啡",
+    "coffee_name": "摩卡",
+    "size": "大杯",
+    "ice": "少冰",
+    "sugar": "半糖",
+    "toppings": [],
+    "create_time": "2026-04-24 10:10:04",
+    "status": "confirmed",
+    "price": 0
+  }
+}
