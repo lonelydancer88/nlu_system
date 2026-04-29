@@ -1,11 +1,14 @@
+"""OrderManager - coffee order business logic with CoffeeAPIClient abstraction."""
 import time
 from typing import Dict, List, Optional
 from .data_manager import DataManager
+from .coffee_api_client import CoffeeAPIProtocol, MockCoffeeAPI
 
 
 class OrderManager:
-    def __init__(self):
+    def __init__(self, coffee_api: CoffeeAPIProtocol = None):
         self.data_manager = DataManager()
+        self.coffee_api = coffee_api or MockCoffeeAPI()
         self.pending_order: Optional[Dict] = None
 
     def _generate_order_id(self) -> str:
@@ -21,24 +24,62 @@ class OrderManager:
                 return item["price"]
         return 0
 
+    def search_shops(self, keyword: str) -> List[Dict]:
+        return self.coffee_api.search_shops(keyword)
+
+    def get_shop_menu(self, shop_id: str) -> List[Dict]:
+        return self.coffee_api.get_shop_menu(shop_id)
+
     def create_order(self, params: Dict) -> Dict:
         prefs = self.data_manager.get_user_preferences()
 
+        shop_name = params.get("shop_name", prefs.get("default_shop", "瑞幸咖啡"))
+        coffee_name = params.get("coffee_name", prefs.get("favorite_coffee", "拿铁"))
+        size = params.get("size", prefs.get("default_size", "大杯"))
+        ice = params.get("ice", prefs.get("default_ice", "少冰"))
+        sugar = params.get("sugar", prefs.get("default_sugar", "半糖"))
+        toppings = params.get("toppings", prefs.get("default_toppings", []))
+
+        # Resolve shop_id: use provided, or search by name
+        shop_id = params.get("shop_id")
+        if not shop_id:
+            shops = self.coffee_api.search_shops(shop_name)
+            shop_id = shops[0]["id"] if shops else "unknown"
+
+        items = [{
+            "coffee_name": coffee_name,
+            "size": size,
+            "ice": ice,
+            "sugar": sugar,
+            "toppings": toppings
+        }]
+
+        # Try API order creation
+        api_order = self.coffee_api.create_order(
+            shop_id=shop_id,
+            items=items,
+            delivery_info={"address": "当前位置"}
+        )
+
         order = {
-            "order_id": self._generate_order_id(),
-            "shop_name": params.get("shop_name", prefs.get("default_shop", "瑞幸咖啡")),
-            "coffee_name": params.get("coffee_name", prefs.get("favorite_coffee", "拿铁")),
-            "size": params.get("size", prefs.get("default_size", "大杯")),
-            "ice": params.get("ice", prefs.get("default_ice", "少冰")),
-            "sugar": params.get("sugar", prefs.get("default_sugar", "半糖")),
-            "toppings": params.get("toppings", prefs.get("default_toppings", [])),
+            "order_id": api_order.get("order_id", self._generate_order_id()),
+            "shop_name": shop_name,
+            "coffee_name": coffee_name,
+            "size": size,
+            "ice": ice,
+            "sugar": sugar,
+            "toppings": toppings,
+            "price": api_order.get("total_price", 0),
             "create_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": "pending"
+            "status": "pending",
+            "_api_order_id": api_order.get("order_id")
         }
 
-        base_price = self._get_coffee_price(order["shop_name"], order["coffee_name"])
-        toppings_price = len(order["toppings"]) * 3
-        order["price"] = base_price + toppings_price
+        # Fallback price calculation if API didn't return one
+        if order["price"] == 0:
+            base_price = self._get_coffee_price(shop_name, coffee_name)
+            toppings_price = len(toppings) * 3
+            order["price"] = base_price + toppings_price
 
         self.pending_order = order
         return order
@@ -62,6 +103,9 @@ class OrderManager:
     def cancel_order(self) -> bool:
         if not self.pending_order:
             return False
+        api_order_id = self.pending_order.get("_api_order_id")
+        if api_order_id:
+            self.coffee_api.cancel_order(api_order_id)
         self.pending_order = None
         return True
 
@@ -86,19 +130,21 @@ class OrderManager:
 
     def get_recommendations(self, shop_name: Optional[str] = None) -> List[Dict]:
         if shop_name:
-            shop = self.data_manager.get_coffee_shop_by_name(shop_name)
-            shops = [shop] if shop else []
+            shops = self.coffee_api.search_shops(shop_name)
         else:
-            shops = self.data_manager.get_all_coffee_shops()
+            shops = self.coffee_api.search_shops("")
 
         recommendations = []
-        for shop in shops:
-            popular_items = shop["menu"][:3]
-            for item in popular_items:
+        for shop in shops[:3]:
+            shop_id = shop.get("id", "")
+            menu = self.coffee_api.get_shop_menu(shop_id)
+            for item in menu[:3]:
                 recommendations.append({
                     "shop_name": shop["name"],
                     "coffee_name": item["name"],
-                    "price": item["price"]
+                    "price": item.get("price", 0)
                 })
+            if len(recommendations) >= 5:
+                break
 
         return recommendations[:5]

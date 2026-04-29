@@ -7,25 +7,51 @@ from modules.order_manager import OrderManager
 from modules.simulation import OrderSimulator
 from modules.nav_manager import NavigationManager
 from modules.nav_simulation import NavigationSimulator
+from modules.amap_client import AmapClient
+from modules.coffee_api_client import create_coffee_api
+try:
+    from config import Config
+except ImportError:
+    Config = None
 
 
 class UnifiedAgent:
-    def __init__(self):
+    def __init__(self, config=None):
+        self.config = config
+
         # NLU（共享）
-        self.nlu = LLMNLU()
+        self.nlu = LLMNLU(
+            model=config.ollama_model if config else "gemma4:e2b",
+            base_url=config.ollama_base_url if config else "http://localhost:11434/api/chat",
+            timeout=config.ollama_timeout if config else 520.0
+        )
 
         # 咖啡场景
-        self.order_manager = OrderManager()
+        coffee_api = create_coffee_api(
+            mode=config.coffee_api_mode if config else "mock",
+            api_key=config.meituan_api_key if config else ""
+        )
+        self.order_manager = OrderManager(coffee_api=coffee_api)
         self.order_simulator = OrderSimulator()
         self.coffee_state = "idle"
         self.current_order = None
 
         # 导航场景
-        self.nav_manager = NavigationManager()
+        amap_client = None
+        if config and config.amap_api_key:
+            amap_client = AmapClient(api_key=config.amap_api_key)
+        self.nav_manager = NavigationManager(
+            amap_client=amap_client,
+            city=config.amap_city if config else "北京"
+        )
         self.nav_simulator = NavigationSimulator()
 
         # 共享
         self.conversation_history = []
+
+    @staticmethod
+    def _create_coffee_api(mode: str, api_key: str = ""):
+        return create_coffee_api(mode=mode, api_key=api_key)
 
     def print_help(self):
         help_text = """
@@ -236,6 +262,19 @@ class UnifiedAgent:
         result = self.nav_manager.navigate_favorite(params)
         return result.get("response", "")
 
+    def handle_select_shop_intent(self, params: Dict) -> str:
+        """用户从咖啡店搜索结果中选择店铺"""
+        # 此意图在多店铺选择场景下由Agent侧处理
+        selection = params.get("selection", 1)
+        return f"您选择了第{selection}家店铺，请告诉我您想喝什么咖啡~"
+
+    def handle_change_route_intent(self, params: Dict) -> str:
+        """用户想切换到另一条推荐路线"""
+        if self.nav_manager.nav_state != "planning":
+            return "当前没有可切换的路线哦~"
+        route_index = params.get("route_index", 1)
+        return f"已为您切换到第{route_index}条路线，路线已更新。是否开始导航？"
+
     # ========== 统一调度 ==========
 
     def _resolve_ambiguous_intent(self, intent: str) -> str:
@@ -257,7 +296,7 @@ class UnifiedAgent:
     def _process_single_intent(self, intent: str, params: Dict, parse_result: Dict) -> str:
         """处理单个意图，返回response字符串"""
         # 咖啡场景澄清（仅咖啡场景意图时才追问咖啡槽位）
-        coffee_intents = {"order", "reorder", "history", "recommend", "confirm_order", "cancel_order"}
+        coffee_intents = {"order", "reorder", "history", "recommend", "confirm_order", "cancel_order", "select_shop"}
         if parse_result.get("needs_clarification") and parse_result.get("clarification_question"):
             if intent in coffee_intents:
                 return parse_result["clarification_question"]
@@ -293,6 +332,7 @@ class UnifiedAgent:
             "recommend": lambda: self.handle_recommend_intent(params),
             "confirm_order": self.handle_confirm_order_intent,
             "cancel_order": self.handle_cancel_order_intent,
+            "select_shop": lambda: self.handle_select_shop_intent(params),
             # 导航
             "navigate": lambda: self.handle_navigate_intent(params),
             "confirm_nav": self.handle_confirm_nav_intent,
@@ -308,6 +348,7 @@ class UnifiedAgent:
             "nav_company": self.handle_nav_company_intent,
             "nav_favorite": lambda: self.handle_nav_favorite_intent(params),
             "select_destination": lambda: self.handle_select_destination_intent(params),
+            "change_route": lambda: self.handle_change_route_intent(params),
             # 通用
             "greeting": self.handle_greeting_intent,
             "help": self.handle_help_intent

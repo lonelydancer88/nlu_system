@@ -15,6 +15,7 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 - recommend: 用户想要获得推荐
 - confirm_order: 用户确认咖啡下单（在咖啡下单确认场景中的"确认/对/好的/可以"）
 - cancel_order: 用户取消咖啡订单
+- select_shop: 用户从搜索结果中选择某个咖啡店
 
 ## 导航场景意图：
 - navigate: 用户要导航去某地
@@ -31,6 +32,7 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 - nav_company: 用户要导航去公司
 - nav_favorite: 用户要导航到收藏地点
 - select_destination: 用户从多个候选目的地中选择某一个
+- change_route: 用户想切换推荐路线（当有多条路线可选时）
 
 ## 通用意图：
 - greeting: 用户打招呼
@@ -44,17 +46,21 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 - ice: 冰度（热、少冰、正常冰、去冰、常温）
 - sugar: 糖度（无糖、半糖、全糖、少糖、三分糖、五分糖、七分糖、多糖）
 - toppings: 配料列表（奶盖、奶油、糖浆、浓缩、珍珠、椰果）
+- selection: 用户选择的店铺编号（select_shop时使用）
 
 ## 导航场景可提取参数：
 - destination: 目的地名称/地址
+- city: 城市名称（默认当前城市）
 - waypoint: 途经点名称
 - poi_type: POI类型（加油站/餐厅/停车场/充电站/医院/银行/超市/商场）
 - keyword: POI搜索关键词
+- radius: 搜索半径（米，默认3000）
 - avoid_type: 避让类型（toll=收费/congestion=拥堵/highway=高速）
 - favorite_name: 收藏地点名称
 - route_preference: 路线偏好（最快/最短/省油）
 - road_name: 路名
 - selection: 用户选择的目的地编号（当从候选中选择时）
+- route_index: 用户选择的路线编号（change_route时使用）
 
 ## 关键规则：
 1. 如果用户提到了具体信息，提取到params中；如果缺失，不要猜测，params中不包含该字段
@@ -64,6 +70,8 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 5. 咖啡场景：缺少coffee_name时设置needs_clarification=true并追问
 6. 导航场景：缺少destination时设置needs_clarification=true并追问
 7. 口语化表达也要理解，如"老样子"=reorder，"随便来一杯"=order，"回家"=nav_home，"多久到"=query_eta，"还有多少油"=vehicle_status
+8. select_shop用于用户从咖啡店搜索结果中选择，如"第一个"、"就这家"、"选第2个"
+9. change_route用于用户想换一条路线，如"换条路"、"走另一条"、"不走这条"
 
 请严格输出以下JSON格式，不要有任何其他文字：
 {"intents": [{"intent": "...", "params": {...}}, ...], "needs_clarification": false, "clarification_question": null}
@@ -76,12 +84,12 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 
 VALID_INTENTS = {
     # 咖啡场景
-    "order", "reorder", "history", "recommend", "confirm_order", "cancel_order",
+    "order", "reorder", "history", "recommend", "confirm_order", "cancel_order", "select_shop",
     # 导航场景
     "navigate", "confirm_nav", "cancel_nav", "add_waypoint",
     "search_poi", "search_along_route", "traffic_info", "avoid_route",
     "query_eta", "vehicle_status", "nav_home", "nav_company", "nav_favorite",
-    "select_destination",
+    "select_destination", "change_route",
     # 通用
     "greeting", "help", "unknown"
 }
@@ -99,6 +107,7 @@ class RuleNLU:
             "recommend": [r"推荐", r"有什么好喝的"],
             "confirm_order": [r"确认下单", r"确认订单"],
             "cancel_order": [r"取消订单"],
+            "select_shop": [r"第[一二三四五1-5]个店", r"就这家", r"选第\d+个", r"第\d+家"],
             # 导航场景（仅基础关键词兜底，精细意图由LLM处理）
             "navigate": [r"导航去", r"导航到", r"开车去", r"怎么走"],
             "nav_home": [r"回家"],
@@ -106,6 +115,8 @@ class RuleNLU:
             "query_eta": [r"多久到", r"还要多久"],
             "vehicle_status": [r"还有多少油", r"还有多少电", r"油量", r"电量"],
             "cancel_nav": [r"取消导航", r"结束导航"],
+            "search_poi": [r"附近找", r"找.*加油站", r"找.*餐厅", r"找.*停车场", r"附近.*公里"],
+            "change_route": [r"换条路", r"换.*路线", r"走另一条", r"不走这条", r"换条路线"],
             # 通用
             "greeting": [r"你好", r"嗨", r"hello", r"hi"],
             "help": [r"帮助", r"怎么用", r"能做什么"]
@@ -140,8 +151,16 @@ class RuleNLU:
         return best_intent, max_confidence
 
     def extract_parameters(self, text: str) -> Dict:
-        """仅提取咖啡场景参数，导航参数由LLM处理"""
+        """提取参数，包括咖啡和新增的select_shop/change_route参数"""
         params = {}
+
+        # select_shop: extract selection number
+        import re as _re
+        sel_match = _re.search(r"第([一二三四五1-5])个", text) or _re.search(r"选第(\d+)", text)
+        if sel_match:
+            num_map = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5}
+            num_str = sel_match.group(1)
+            params["selection"] = num_map.get(num_str, int(num_str) if num_str.isdigit() else 1)
 
         for shop in self.shop_names:
             if shop in text:
@@ -343,7 +362,7 @@ class LLMNLU:
 
         if self.enable_fallback:
             fallback_result = self.fallback.parse(text, history)
-            result["intents"] = [{"intent": fallback_result["intent"], "params": fallback_result["params"]}]
+            result["intents"] = fallback_result["intents"]
             result["source"] = "rule_fallback"
 
         return result
