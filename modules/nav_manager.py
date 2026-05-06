@@ -320,7 +320,7 @@ class NavigationManager:
             for i, poi in enumerate(pois[:5], 1):
                 rating_str = f" 评分{poi['rating']}" if poi.get("rating") else ""
                 response += f"{i}. {poi['name']} - {poi.get('address', '')}{rating_str}\n"
-            return {"response": response.strip()}
+            return {"response": response.strip(), "pois": pois[:5]}
 
         # Legacy fallback
         if poi_type:

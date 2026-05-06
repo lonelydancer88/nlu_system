@@ -42,6 +42,7 @@ class UnifiedAgent:
         self.order_simulator = OrderSimulator()
         self.coffee_state = "idle"
         self.current_order = None
+        self.pending_shops = []  # 存储咖啡店搜索结果
 
         # 导航场景
         amap_client = None
@@ -235,6 +236,9 @@ class UnifiedAgent:
 
     def handle_search_poi_intent(self, params: Dict) -> str:
         result = self.nav_manager.search_poi(params)
+        # 存储POI列表供后续选择
+        if "pois" in result:
+            self.pending_shops = result["pois"]
         return result.get("response", "")
 
     def handle_search_along_route_intent(self, params: Dict) -> str:
@@ -271,9 +275,14 @@ class UnifiedAgent:
 
     def handle_select_shop_intent(self, params: Dict) -> str:
         """用户从咖啡店搜索结果中选择店铺"""
-        # 此意图在多店铺选择场景下由Agent侧处理
+        if not self.pending_shops:
+            return "请先搜索附近的咖啡店~"
         selection = params.get("selection", 1)
-        return f"您选择了第{selection}家店铺，请告诉我您想喝什么咖啡~"
+        if selection < 1 or selection > len(self.pending_shops):
+            return f"请选择1-{len(self.pending_shops)}之间的编号~"
+        shop = self.pending_shops[selection - 1]
+        self.pending_shops = []  # 清除待选列表
+        return f"您选择了「{shop['name']}」，请告诉我您想喝什么咖啡~"
 
     def handle_change_route_intent(self, params: Dict) -> str:
         """用户想切换到另一条推荐路线"""
