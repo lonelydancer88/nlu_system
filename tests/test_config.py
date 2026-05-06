@@ -126,7 +126,11 @@ class TestConfigPriority:
 class TestConfigValidation:
     """Config should validate required fields."""
 
-    def test_missing_amap_key_raises(self, monkeypatch):
+    def test_missing_amap_key_raises(self, tmp_path, monkeypatch):
+        # Use temp config file without amap_api_key
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"llm_api_key": "test"}))
+        monkeypatch.setenv("CONFIG_FILE", str(config_file))
         monkeypatch.delenv("AMAP_API_KEY", raising=False)
         monkeypatch.delenv("AMAP_KEY", raising=False)
         from config import Config
@@ -152,7 +156,11 @@ class TestConfigValidation:
 class TestConfigKeyGuidance:
     """Config should provide guidance for obtaining API keys."""
 
-    def test_missing_key_guidance(self, monkeypatch):
+    def test_missing_key_guidance(self, tmp_path, monkeypatch):
+        # Use temp config file without amap_api_key
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"llm_api_key": "test"}))
+        monkeypatch.setenv("CONFIG_FILE", str(config_file))
         monkeypatch.delenv("AMAP_API_KEY", raising=False)
         monkeypatch.delenv("AMAP_KEY", raising=False)
         from config import Config

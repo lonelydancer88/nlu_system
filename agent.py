@@ -422,5 +422,5 @@ class UnifiedAgent:
 
 
 if __name__ == "__main__":
-    agent = UnifiedAgent()
+    agent = UnifiedAgent(Config())
     agent.run()

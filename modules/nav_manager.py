@@ -69,7 +69,8 @@ class NavigationManager:
 
         if self.amap:
             # Use real Amap API
-            geocode_result = self.amap.geocode(destination, city=self.city)
+            # 不限制城市搜索目的地，让高德自动匹配
+            geocode_result = self.amap.geocode(destination)
 
             if geocode_result.get("status") != "1" or not geocode_result.get("geocodes"):
                 # Geocode failed, use synthetic fallback
@@ -215,7 +216,7 @@ class NavigationManager:
         return {"response": "导航已取消，有需要随时告诉我~"}
 
     def add_waypoint(self, params: Dict) -> Dict:
-        if self.nav_state != "navigating":
+        if self.nav_state not in ("planning", "navigating"):
             return {"response": "当前没有进行中的导航，无法添加途经点~"}
         waypoint = params.get("waypoint", "")
         if not waypoint:
@@ -223,7 +224,7 @@ class NavigationManager:
 
         if self.amap and self._dest_location:
             # Geocode waypoint and replan with waypoints param
-            wp_geocode = self.amap.geocode(waypoint, city=self.city)
+            wp_geocode = self.amap.geocode(waypoint)
             if wp_geocode.get("status") == "1" and wp_geocode.get("geocodes"):
                 wp_location = wp_geocode["geocodes"][0]["location"]
                 origin = self._origin_location or "116.470,39.985"
