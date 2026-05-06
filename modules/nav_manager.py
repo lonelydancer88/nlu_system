@@ -81,27 +81,62 @@ class NavigationManager:
                 return self._format_route_response(route)
 
             geocodes = geocode_result["geocodes"]
-            if len(geocodes) > 1:
-                # Multiple matches, need user selection
-                self.pending_destinations = [
-                    {
-                        "name": g.get("formatted_address", destination),
-                        "address": g.get("formatted_address", ""),
-                        "location": g["location"]
-                    }
-                    for g in geocodes[:5]
-                ]
-                self.nav_state = "planning"
-                options = "\n".join(
-                    f"{i+1}. {m['name']}（{m.get('address', '')}）"
-                    for i, m in enumerate(self.pending_destinations)
-                )
-                return {
-                    "response": f"找到多个「{destination}」，请确认您要去哪一个：\n{options}",
-                    "needs_clarification": True
-                }
+            city_in_name = self.city  # e.g., "北京"
 
-            # Single match
+            # 如果只有一个结果，也搜索POI检查是否有当前城市的替代选项
+            if len(geocodes) == 1:
+                # 搜索POI看看是否有当前城市的匹配
+                poi_results = self.amap.search_poi(destination, city=self.city)
+                if poi_results and len(poi_results) > 1:
+                    # POI搜索返回多个结果，优先当前城市
+                    city_pois = [p for p in poi_results if self.city and self.city in p.get("cityname", "")]
+                    if city_pois:
+                        # 有当前城市的结果，使用第一个
+                        first_poi = city_pois[0]
+                        location = first_poi.get("location", "")
+                        if location:
+                            geocodes = [{"location": location, "formatted_address": first_poi.get("name", destination)}]
+
+            if len(geocodes) > 1:
+                # Multiple matches: prioritize current city
+                # Sort: current city first, others after
+                def city_priority(g):
+                    addr = g.get("formatted_address", "")
+                    # 如果地址中包含当前城市，优先级高
+                    if city_in_name and city_in_name in addr:
+                        return 0
+                    return 1
+
+                geocodes_sorted = sorted(geocodes, key=city_priority)
+
+                # 如果第一个结果就是当前城市的，直接使用
+                first_addr = geocodes_sorted[0].get("formatted_address", "")
+                if city_in_name and city_in_name in first_addr:
+                    # 当前城市匹配，直接使用第一个
+                    dest_location = geocodes_sorted[0]["location"]
+                    self._dest_location = dest_location
+                    geocodes = [geocodes_sorted[0]]
+                else:
+                    # 多个不同城市，需要用户选择
+                    self.pending_destinations = [
+                        {
+                            "name": g.get("formatted_address", destination),
+                            "address": g.get("formatted_address", ""),
+                            "location": g["location"]
+                        }
+                        for g in geocodes_sorted[:5]
+                    ]
+                    self.nav_state = "planning"
+                    options = "\n".join(
+                        f"{i+1}. {m['name']}（{m.get('address', '')}）"
+                        for i, m in enumerate(self.pending_destinations)
+                    )
+                    return {
+                        "response": f"找到多个「{destination}」，请确认您要去哪一个：\n{options}",
+                        "needs_clarification": True
+                    }
+
+            # Single match or city-prioritized match
             dest_location = geocodes[0]["location"]
             self._dest_location = dest_location
 

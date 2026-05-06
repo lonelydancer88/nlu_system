@@ -16,9 +16,11 @@ class AmapClient(APIClientBase):
         params = {"address": address}
         if city:
             params["city"] = city
+        print(f"[debug] 高德地理编码 API: address={address}, city={city}")
         return self.get("/geocode/geo", params)
 
     def reverse_geocode(self, location: str) -> Dict:
+        print(f"[debug] 高德逆地理编码 API: location={location}")
         return self.get("/regeo", {"location": location})
 
     def driving_direction(self, origin: str, destination: str, waypoints: str = None) -> Dict:
@@ -29,6 +31,7 @@ class AmapClient(APIClientBase):
         }
         if waypoints:
             params["waypoints"] = waypoints
+        print(f"[debug] 高德驾车导航 API: origin={origin}, destination={destination}, waypoints={waypoints}")
         return self.get("/direction/driving", params)
 
     def search_poi(self, keywords: str, city: str = None, location: str = None, radius: int = None) -> List[Dict]:
@@ -39,6 +42,7 @@ class AmapClient(APIClientBase):
             params["location"] = location
         if radius:
             params["radius"] = radius
+        print(f"[debug] 高德POI搜索 API: keywords={keywords}, city={city}, location={location}, radius={radius}")
         result = self.get("/place/text", params)
         if result.get("status") == "1":
             return result.get("pois", [])
@@ -50,6 +54,7 @@ class AmapClient(APIClientBase):
             "origin": origin,
             "destination": destination
         }
+        print(f"[debug] 高德沿路线搜索 API: keywords={keywords}, origin={origin}, destination={destination}")
         result = self.get("/place/text", params)
         if result.get("status") == "1":
             return result.get("pois", [])
@@ -59,6 +64,7 @@ class AmapClient(APIClientBase):
         params = {"city": city, "extensions": "all"}
         if road_name:
             params["roadName"] = road_name
+        print(f"[debug] 高德路况 API: city={city}, road_name={road_name}")
         return self.get("/trafficstatus/rect", params)
 
     def format_route(self, api_response: Dict, destination_name: str = "") -> Optional[Dict]:
