@@ -69,8 +69,8 @@ class NavigationManager:
 
         if self.amap:
             # Use real Amap API
-            # 不限制城市搜索目的地，让高德自动匹配
-            geocode_result = self.amap.geocode(destination)
+            # 默认使用当前城市搜索
+            geocode_result = self.amap.geocode(destination, city=self.city)
 
             if geocode_result.get("status") != "1" or not geocode_result.get("geocodes"):
                 # Geocode failed, use synthetic fallback
