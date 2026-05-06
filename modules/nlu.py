@@ -225,12 +225,29 @@ class RuleNLU:
 
 
 class LLMNLU:
-    """基于本地LLM的NLU，优先使用，失败时fallback到RuleNLU"""
+    """基于LLM的NLU，云端优先，失败时降级到本地Ollama，再失败则降级到RuleNLU"""
 
-    def __init__(self, model: str = "gemma4:e2b", base_url: str = "http://localhost:11434/api/chat", timeout: float = 520.0, enable_fallback: bool = False):
+    def __init__(self,
+                 model: str = "gemma4:e2b",
+                 base_url: str = "http://localhost:11434/api/chat",
+                 timeout: float = 520.0,
+                 enable_fallback: bool = False,
+                 # 云端LLM配置
+                 llm_provider: str = "dashscope",
+                 llm_api_key: str = "",
+                 llm_model: str = "glm-5",
+                 llm_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                 llm_timeout: float = 60.0):
+        # 本地ollama配置（降级用）
         self.model = model
         self.base_url = base_url
         self.timeout = timeout
+        # 云端LLM配置（优先）
+        self.llm_provider = llm_provider
+        self.llm_api_key = llm_api_key
+        self.llm_model = llm_model
+        self.llm_base_url = llm_base_url
+        self.llm_timeout = llm_timeout
         self.enable_fallback = enable_fallback
         self.fallback = RuleNLU()
 
@@ -245,7 +262,46 @@ class LLMNLU:
         messages.append({"role": "user", "content": text})
         return messages
 
-    def _call_ollama(self, messages: List[Dict]) -> Optional[str]:
+    def _call_cloud_llm(self, messages: List[Dict]) -> Optional[str]:
+        """调用云端LLM API（DashScope/OpenAI兼容）"""
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.llm_api_key}"
+        }
+        payload = {
+            "model": self.llm_model,
+            "messages": messages,
+            "stream": False
+        }
+
+        req = urllib.request.Request(
+            self.llm_base_url + "/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=self.llm_timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except TimeoutError:
+            print(f"[debug] 云端LLM请求超时 (timeout={self.llm_timeout}s)")
+            return None
+        except urllib.error.HTTPError as e:
+            print(f"[debug] 云端LLM HTTP错误: {e.code} {e.reason}")
+            return None
+        except urllib.error.URLError as e:
+            print(f"[debug] 云端LLM网络连接错误: {e.reason}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"[debug] 云端LLM返回结果JSON解析错误: {e}")
+            return None
+        except Exception as e:
+            print(f"[debug] 云端LLM请求未知错误: {type(e).__name__}: {e}")
+            return None
+
+    def _call_local_llm(self, messages: List[Dict]) -> Optional[str]:
         payload = {
             "model": self.model,
             "messages": messages,
@@ -369,12 +425,27 @@ class LLMNLU:
 
     def parse(self, text: str, history: List[Dict] = None) -> Dict:
         messages = self._build_messages(text, history)
-        content = self._call_ollama(messages)
+        content = None
+        llm_source = None
+
+        # 优先调用云端LLM
+        if self.llm_api_key:
+            content = self._call_cloud_llm(messages)
+            if content:
+                llm_source = "cloud"
+                print(f"[debug] 使用云端LLM ({self.llm_provider}/{self.llm_model})")
+
+        # 云端失败，降级到本地Ollama
+        if content is None and self.model:
+            print("[debug] 云端LLM不可用，降级到本地Ollama...")
+            content = self._call_local_llm(messages)
+            if content:
+                llm_source = "local"
 
         if content is None:
             print("[debug] LLM调用失败(网络/超时/服务错误)" +
                   ("，降级到规则匹配" if self.enable_fallback else ""))
-            return self._make_error_result(text, history, messages, "call_failed")
+            return self._make_error_result(text, history, messages, "call_failed", None)
 
         # 尝试从LLM返回的文本中解析JSON
         result = self._extract_json_from_text(content)
@@ -408,7 +479,7 @@ class LLMNLU:
             "intents": intents,
             "needs_clarification": result.get("needs_clarification", False),
             "clarification_question": result.get("clarification_question"),
-            "source": "llm",
+            "source": llm_source or "llm",
             "llm_request_messages": messages,
             "llm_raw_response": content
         }

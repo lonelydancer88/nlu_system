@@ -198,7 +198,7 @@ class TestLLMNLU:
         result = nlu._extract_json_from_text("This is just plain text")
         assert result is None
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_with_llm_success(self, mock_call, nlu):
         mock_call.return_value = json.dumps({
             "intents": [{"intent": "order", "params": {"coffee_name": "拿铁"}}],
@@ -207,9 +207,9 @@ class TestLLMNLU:
         })
         result = nlu.parse("点一杯拿铁")
         assert result["intents"][0]["intent"] == "order"
-        assert result["source"] == "llm"
+        assert result["source"] == "local"
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_with_llm_failure_fallback(self, mock_call, nlu):
         mock_call.return_value = None
         result = nlu.parse("点一杯拿铁")
@@ -217,7 +217,7 @@ class TestLLMNLU:
         assert result["source"] == "rule_fallback"
         assert result["intents"][0]["intent"] == "order"
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_without_fallback(self, mock_call):
         nlu_no_fallback = LLMNLU(enable_fallback=False)
         mock_call.return_value = None
@@ -225,14 +225,14 @@ class TestLLMNLU:
         assert result["intents"][0]["intent"] == "unknown"
         assert result.get("llm_error") is True
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_bad_json_response(self, mock_call, nlu):
         mock_call.return_value = "This is not JSON at all"
         result = nlu.parse("点一杯拿铁")
         # Falls back to rule
         assert result["source"] == "rule_fallback"
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_invalid_intent_response(self, mock_call, nlu):
         mock_call.return_value = json.dumps({
             "intents": [{"intent": "bad_intent", "params": {}}]
@@ -240,7 +240,7 @@ class TestLLMNLU:
         result = nlu.parse("点一杯拿铁")
         assert result["source"] == "rule_fallback"
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_multi_intent(self, mock_call, nlu):
         mock_call.return_value = json.dumps({
             "intents": [
@@ -255,7 +255,7 @@ class TestLLMNLU:
         assert result["intents"][0]["intent"] == "navigate"
         assert result["intents"][1]["intent"] == "order"
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_filters_none_params(self, mock_call, nlu):
         mock_call.return_value = json.dumps({
             "intents": [{"intent": "order", "params": {"coffee_name": "拿铁", "size": None}}],

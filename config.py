@@ -15,10 +15,16 @@ class Config:
     coffee_api_mode: str = "mock"  # "mock" | "meituan"
     meituan_api_key: str = ""
 
-    # LLM
+    # LLM (优先云端，本地ollama降级)
+    llm_provider: str = "dashscope"  # "dashscope" | "ollama"
+    llm_api_key: str = ""  # 阿里云DashScope API Key
+    llm_model: str = "glm-5"  # 通义千问模型
+    llm_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"  # DashScope API地址
+    llm_timeout: float = 60.0
+    # 本地ollama降级配置
     ollama_model: str = "gemma4:e2b"
     ollama_base_url: str = "http://localhost:11434/api/chat"
-    ollama_timeout: float = 520.0
+    ollama_timeout: float = 120.0
 
     def __post_init__(self):
         self._load_from_file()
@@ -60,6 +66,13 @@ class Config:
         self.amap_city = os.environ.get("AMAP_CITY") or self.amap_city
         self.coffee_api_mode = os.environ.get("COFFEE_API_MODE") or self.coffee_api_mode
         self.meituan_api_key = os.environ.get("MEITUAN_API_KEY") or self.meituan_api_key
+        # 云端LLM配置
+        self.llm_provider = os.environ.get("LLM_PROVIDER") or self.llm_provider
+        self.llm_api_key = os.environ.get("LLM_API_KEY") or self.llm_api_key
+        self.llm_model = os.environ.get("LLM_MODEL") or self.llm_model
+        self.llm_base_url = os.environ.get("LLM_BASE_URL") or self.llm_base_url
+        self.llm_timeout = float(os.environ.get("LLM_TIMEOUT") or self.llm_timeout)
+        # 本地ollama降级配置
         self.ollama_model = os.environ.get("OLLAMA_MODEL") or self.ollama_model
         self.ollama_base_url = os.environ.get("OLLAMA_BASE_URL") or self.ollama_base_url
         self.ollama_timeout = float(os.environ.get("OLLAMA_TIMEOUT") or self.ollama_timeout)

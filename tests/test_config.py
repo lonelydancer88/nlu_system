@@ -33,7 +33,7 @@ class TestConfigDefaults:
     def test_default_ollama_timeout(self):
         from config import Config
         cfg = Config()
-        assert cfg.ollama_timeout == 520.0
+        assert cfg.ollama_timeout == 120.0
 
 
 class TestConfigFromEnv:

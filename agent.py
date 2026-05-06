@@ -19,11 +19,18 @@ class UnifiedAgent:
     def __init__(self, config=None):
         self.config = config
 
-        # NLU（共享）
+        # NLU（共享）- 云端优先，本地ollama降级
         self.nlu = LLMNLU(
+            # 本地ollama降级配置
             model=config.ollama_model if config else "gemma4:e2b",
             base_url=config.ollama_base_url if config else "http://localhost:11434/api/chat",
-            timeout=config.ollama_timeout if config else 520.0
+            timeout=config.ollama_timeout if config else 120.0,
+            # 云端LLM配置（优先）
+            llm_provider=config.llm_provider if config else "dashscope",
+            llm_api_key=config.llm_api_key if config else "",
+            llm_model=config.llm_model if config else "glm-5",
+            llm_base_url=config.llm_base_url if config else "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            llm_timeout=config.llm_timeout if config else 60.0,
         )
 
         # 咖啡场景

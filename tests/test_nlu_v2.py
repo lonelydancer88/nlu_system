@@ -71,7 +71,7 @@ class TestLLMNLUValidateNewIntents:
         }
         assert nlu._validate_result(result) is True
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_select_shop_from_llm(self, mock_call, nlu):
         mock_call.return_value = json.dumps({
             "intents": [{"intent": "select_shop", "params": {"selection": 1}}],
@@ -80,9 +80,9 @@ class TestLLMNLUValidateNewIntents:
         })
         result = nlu.parse("第一家")
         assert result["intents"][0]["intent"] == "select_shop"
-        assert result["source"] == "llm"
+        assert result["source"] == "local"
 
-    @patch.object(LLMNLU, '_call_ollama')
+    @patch.object(LLMNLU, '_call_local_llm')
     def test_parse_change_route_from_llm(self, mock_call, nlu):
         mock_call.return_value = json.dumps({
             "intents": [{"intent": "change_route", "params": {}}],
@@ -91,7 +91,7 @@ class TestLLMNLUValidateNewIntents:
         })
         result = nlu.parse("换条路")
         assert result["intents"][0]["intent"] == "change_route"
-        assert result["source"] == "llm"
+        assert result["source"] == "local"
 
 
 class TestNewParamsInRules:
