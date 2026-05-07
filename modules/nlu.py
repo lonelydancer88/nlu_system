@@ -30,8 +30,11 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 - vehicle_status: 用户要查看车辆状态（油量/电量）
 - nav_home: 用户要导航回家
 - nav_company: 用户要导航去公司
+- query_home: 用户询问家的地址（如"我的家在哪"、"家在哪儿"）
+- query_company: 用户询问公司的地址（如"我的公司在哪"、"公司在哪儿"）
 - nav_favorite: 用户要导航到收藏地点
 - select_destination: 用户从多个候选目的地中选择某一个
+- recommend_poi: 用户请求推荐某类地点（如情侣约会、朋友聚餐、周末游玩等），返回POI列表供选择后导航
 - change_route: 用户想切换推荐路线（当有多条路线可选时）
 
 ## 通用意图：
@@ -54,6 +57,7 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 - waypoint: 途经点名称
 - poi_type: POI类型（加油站/餐厅/停车场/充电站/医院/银行/超市/商场）
 - keyword: POI搜索关键词
+- poi_keyword: POI推荐关键词（如"情侣约会"、"朋友聚餐"、"周末游玩"等）
 - radius: 搜索半径（米，默认3000）
 - avoid_type: 避让类型（toll=收费/congestion=拥堵/highway=高速）
 - favorite_name: 收藏地点名称
@@ -69,17 +73,21 @@ SYSTEM_PROMPT = """你是车载智能助手的意图理解模块。你同时处�
 4. cancel_order和cancel_nav同理：根据上下文区分
 5. 咖啡场景：缺少coffee_name时设置needs_clarification=true并追问
 6. 导航场景：缺少destination时设置needs_clarification=true并追问
-7. 口语化表达也要理解，如"老样子"=reorder，"随便来一杯"=order，"回家"=nav_home，"多久到"=query_eta，"还有多少油"=vehicle_status
-8. select_shop用于用户从咖啡店搜索结果中选择，如"第一个"、"就这家"、"选第2个"
-9. change_route用于用户想换一条路线，如"换条路"、"走另一条"、"不走这条"
+7. 口语化表达也要理解，如"老样子"=reorder，"随便来一杯"=order。注意：行动 vs 询问的区别："回家"=nav_home（导航去家）vs "我的家在哪"/"家在哪儿"=query_home（询问家的地址）；"去公司"/"到公司"=nav_company（导航去公司）vs "我的公司在哪"/"公司在哪儿"=query_company（询问公司地址）。"多久到"=query_eta，"还有多少油"=vehicle_status
+8. select_shop用于用户从咖啡店搜索结果中选择，如"第一个"、"就这家"、"选第2个"。仅当对话上下文是咖啡店搜索时使用
+9. select_destination用于用户从导航目的地搜索结果或POI搜索结果中选择，如"第四个"、"选第3个"、"就这个"。当对话上下文是导航/POI搜索时，类似的"第N个"表达应识别为select_destination
+10. change_route用于用户想换一条路线，如"换条路"、"走另一条"、"不走这条"
 
 请严格输出以下JSON格式，不要有任何其他文字：
-{"intents": [{"intent": "...", "params": {...}}, ...], "needs_clarification": false, "clarification_question": null}
+{"intents": [{"intent": "...", "params": {...}}, ...], "poi_list": null, "needs_clarification": false, "clarification_question": null}
 
 注意：
 - intents是一个数组，包含1个或多个意图。即使用户只表达了一个意图，也用数组格式返回
 - 每个意图都有独立的intent和params
-- 例如"导航去中关村，顺便帮我点杯拿铁"应返回：{"intents": [{"intent": "navigate", "params": {"destination": "中关村"}}, {"intent": "order", "params": {"coffee_name": "拿铁"}}], "needs_clarification": false, "clarification_question": null}
+- poi_list字段：当intent为recommend_poi时，必须包含POI推荐列表；其他intent时poi_list为null或省略
+- 推荐POI时请根据用户所在城市推荐真实存在的地点，返回不超过8个，每个包含name（名称）和reason（推荐理由）
+- 例如"导航去中关村，顺便帮我点杯拿铁"应返回：{"intents": [{"intent": "navigate", "params": {"destination": "中关村"}}, {"intent": "order", "params": {"coffee_name": "拿铁"}}], "poi_list": null, "needs_clarification": false, "clarification_question": null}
+- 例如"推荐一个适合情侣约会的地方"应返回：{"intents": [{"intent": "recommend_poi", "params": {"poi_keyword": "情侣约会"}}], "poi_list": [{"name": "蓝色港湾", "reason": "环境浪漫，适合散步和晚餐"}, {"name": "三里屯太古里", "reason": "时尚地标，餐厅众多"}], "needs_clarification": false, "clarification_question": null}
 """
 
 VALID_INTENTS = {
@@ -89,6 +97,7 @@ VALID_INTENTS = {
     "navigate", "confirm_nav", "cancel_nav", "add_waypoint",
     "search_poi", "search_along_route", "traffic_info", "avoid_route",
     "query_eta", "vehicle_status", "nav_home", "nav_company", "nav_favorite",
+    "query_home", "query_company", "recommend_poi",
     "select_destination", "change_route",
     # 通用
     "greeting", "help", "unknown"
@@ -406,6 +415,7 @@ class LLMNLU:
         """构建LLM错误时的返回结果，根据enable_fallback决定是否降级"""
         result = {
             "intents": [{"intent": "unknown", "params": {}}],
+            "poi_list": None,
             "needs_clarification": False,
             "clarification_question": None,
             "llm_error": True,
@@ -477,6 +487,7 @@ class LLMNLU:
 
         return {
             "intents": intents,
+            "poi_list": result.get("poi_list"),
             "needs_clarification": result.get("needs_clarification", False),
             "clarification_question": result.get("clarification_question"),
             "source": llm_source or "llm",

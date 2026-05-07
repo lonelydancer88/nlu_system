@@ -320,6 +320,7 @@ class NavigationManager:
             for i, poi in enumerate(pois[:5], 1):
                 rating_str = f" 评分{poi['rating']}" if poi.get("rating") else ""
                 response += f"{i}. {poi['name']} - {poi.get('address', '')}{rating_str}\n"
+            self.pending_destinations = pois[:5]
             return {"response": response.strip(), "pois": pois[:5]}
 
         # Legacy fallback
@@ -488,7 +489,7 @@ class NavigationManager:
             origin = self._origin_location or "116.470,39.985"
             driving_result = self.amap.driving_direction(origin, loc_str)
             if driving_result.get("status") == "1":
-                route = self.amap.format_route(driving_direction_result=driving_result, destination_name=company["name"])
+                route = self.amap.format_route(driving_result, destination_name=company["name"])
                 if route:
                     route["id"] = self._generate_route_id()
                     route["to_address"] = company.get("address", "")
